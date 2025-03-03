@@ -9,8 +9,8 @@ from typing import Union, List
 
 import torch
 
-from laion_clap.clap_modulemodel import build_model_from_openai_state_dict
-from laion_clap.clap_modulepretrained import (
+from laion_clap.clap_module.model import build_model_from_openai_state_dict
+from laion_clap.clap_module.pretrained import (
     get_pretrained_url,
     list_pretrained_tag_models,
     download_pretrained,

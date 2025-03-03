@@ -17,7 +17,7 @@ try:
 except ImportError:
     timm = None
 
-from laion_clap.clap_moduleutils import freeze_batch_norm_2d
+from laion_clap.clap_module.utils import freeze_batch_norm_2d
 
 
 class TimmModel(nn.Module):

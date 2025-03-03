@@ -10,13 +10,13 @@ import os
 import logging
 import torch
 import librosa
-from laion_clap.clap_module import create_model
+from laion_clap.clap_module. import create_model
 from laion_clap.training.data import get_audio_features
 from laion_clap.training.data import int16_to_float32, float32_to_int16
 
 from transformers import RobertaTokenizer
 import wget
-from laion_clap.clap_modulefactory import load_state_dict
+from laion_clap.clap_module.factory import load_state_dict
 
 
 class CLAP_Module(torch.nn.Module):

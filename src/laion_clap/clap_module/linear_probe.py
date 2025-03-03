@@ -1,5 +1,5 @@
 from torch import nn
-from laion_clap.clap_modulemodel import MLPLayers
+from laion_clap.clap_module.model import MLPLayers
 
 
 class LinearProbe(nn.Module):

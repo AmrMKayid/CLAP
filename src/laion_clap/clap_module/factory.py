@@ -9,10 +9,10 @@ from packaging import version
 import torch
 import transformers
 
-from laion_clap.clap_modulemodel import CLAP, convert_weights_to_fp16
-from laion_clap.clap_moduleopenai import load_openai_model
-from laion_clap.clap_modulepretrained import get_pretrained_url, download_pretrained
-from laion_clap.clap_moduletransform import image_transform
+from laion_clap.clap_module.model import CLAP, convert_weights_to_fp16
+from laion_clap.clap_module.openai import load_openai_model
+from laion_clap.clap_module.pretrained import get_pretrained_url, download_pretrained
+from laion_clap.clap_module.transform import image_transform
 
 _MODEL_CONFIG_PATHS = [Path(__file__).parent / "model_configs/"]
 _MODEL_CONFIGS = {}  # directory (model_name: config) of model architecture configs

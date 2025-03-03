@@ -20,9 +20,9 @@ import random
 from torchlibrosa.stft import Spectrogram, LogmelFilterBank
 from torchlibrosa.augmentation import SpecAugmentation
 
-from laion_clap.clap_moduleutils import do_mixup, interpolate
+from laion_clap.clap_module.utils import do_mixup, interpolate
 
-from laion_clap.clap_modulefeature_fusion import iAFF, AFF, DAF
+from laion_clap.clap_module.feature_fusion import iAFF, AFF, DAF
 
 
 # from PyTorch internals

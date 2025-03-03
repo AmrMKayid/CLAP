@@ -14,10 +14,10 @@ import torch.nn.functional as F
 from torch import nn
 
 import logging
-from laion_clap.clap_moduleutils import freeze_batch_norm_2d
+from laion_clap.clap_module.utils import freeze_batch_norm_2d
 
-from laion_clap.clap_modulepann_model import create_pann_model
-from laion_clap.clap_modulehtsat import create_htsat_model
+from laion_clap.clap_module.pann_model import create_pann_model
+from laion_clap.clap_module.htsat import create_htsat_model
 from transformers import BertModel, RobertaModel, BartModel
 
 
