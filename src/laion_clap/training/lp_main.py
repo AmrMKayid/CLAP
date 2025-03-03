@@ -24,7 +24,7 @@ try:
 except ImportError:
     hvd = None
 
-from laion_clap.clap_module. import (
+from laion_clap.clap_module import (
     trace_model,
     create_model,
 )

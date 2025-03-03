@@ -12,7 +12,7 @@ try:
 except ImportError:
     wandb = None
 
-from laion_clap.clap_module. import LPLoss, LPMetrics, lp_gather_features
+from laion_clap.clap_module import LPLoss, LPMetrics, lp_gather_features
 from laion_clap.clap_module.utils import do_mixup, get_mix_lambda
 from laion_clap.training.distributed import is_master
 

@@ -7,7 +7,7 @@ import wandb
 import torch
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
-from laion_clap.clap_module. import create_model
+from laion_clap.clap_module import create_model
 from training.logger import setup_logging
 from training.data import get_data
 from laion_clap.clap_module.utils import get_tar_path_from_dataset_name, dataset_split

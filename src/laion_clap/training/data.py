@@ -22,7 +22,7 @@ from contextlib import suppress
 
 from laion_clap.clap_module.utils import get_tar_path_from_dataset_name, dataset_split
 from laion_clap.clap_module.utils import load_class_label
-from laion_clap.clap_module. import tokenize as clip_tokenizer
+from laion_clap.clap_module import tokenize as clip_tokenizer
 from transformers import BertTokenizer
 from transformers import RobertaTokenizer
 from transformers import BartTokenizer
