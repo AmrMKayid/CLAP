@@ -1,6 +1,7 @@
-'''
+"""
 Evalute the linear probe performance on different checkpoints
-'''
+"""
+
 import logging
 import os
 import random
@@ -27,17 +28,20 @@ try:
 except ImportError:
     hvd = None
 
-from clap_module import create_model_and_transforms, trace_model, create_model
+from laion_clap.clap_module import (
+    trace_model,
+    create_model,
+)
 from training.data import get_data
 from training.params import parse_args
 from training.distributed import is_master, init_distributed_device, world_info_from_env
 from training.logger import setup_logging
-from training.scheduler import cosine_lr
 from training.lp_main import config_lp_optimizer
 from training.lp_train import train_one_epoch, evaluate
-from clap_module.utils import get_tar_path_from_dataset_name, dataset_split
-from clap_module.utils import load_p, load_class_label
-from clap_module.linear_probe import LinearProbe
+from laion_clap.clap_module.utils import dataset_split
+from laion_clap.clap_module.utils import load_class_label
+from laion_clap.clap_module.linear_probe import LinearProbe
+
 
 def maintain_ckpts(args, startidx, all_idx_len):
     for i in reversed(range(startidx, all_idx_len)):
@@ -54,7 +58,12 @@ def maintain_ckpts(args, startidx, all_idx_len):
 
 
 def update_top_k_performance(
-    new_metrics_inputs, current_top_k_ckpt_metrics, args, ckpt, bignumbetter=True, pretrain_epoch=0
+    new_metrics_inputs,
+    current_top_k_ckpt_metrics,
+    args,
+    ckpt,
+    bignumbetter=True,
+    pretrain_epoch=0,
 ):
     """
     Record the top-k performance of the current epoch.
@@ -68,7 +77,7 @@ def update_top_k_performance(
             args=args,
             ckpt=ckpt,
             bignumbetter=bignumbetter,
-            pretrain_epoch=pretrain_epoch
+            pretrain_epoch=pretrain_epoch,
         )
     elif isinstance(new_metrics_inputs, dict):
         new_metrics_inputs = np.mean(list(new_metrics_inputs.values()))
@@ -78,7 +87,7 @@ def update_top_k_performance(
             args=args,
             ckpt=ckpt,
             bignumbetter=bignumbetter,
-            pretrain_epoch=pretrain_epoch
+            pretrain_epoch=pretrain_epoch,
         )
     elif isinstance(new_metrics_inputs, (float, int)):
         update_flag = {k: False for k in current_top_k_ckpt_metrics.keys()}
@@ -103,7 +112,10 @@ def update_top_k_performance(
                     maintain_ckpts(args, i, len(sorted_keys))
                     torch.save(
                         ckpt,
-                        os.path.join(args.checkpoint_path, f"pretrain_epoch_{pretrain_epoch}_lp_epoch_top_{i}.pt"),
+                        os.path.join(
+                            args.checkpoint_path,
+                            f"pretrain_epoch_{pretrain_epoch}_lp_epoch_top_{i}.pt",
+                        ),
                     )
                     break
             return current_top_k_ckpt_metrics, new_metrics_inputs
@@ -129,19 +141,21 @@ def random_seed(seed=42, rank=0):
     np.random.seed(seed + rank)
     random.seed(seed + rank)
 
+
 def main():
     args = parse_args()
     # sanitize model name for filesystem / uri use, easier if we don't use / in name as a rule?
     args.amodel = args.amodel.replace("/", "-")
-    
-    pretrained_ckpts = sorted(glob.glob(os.path.join(args.pretrained, "*.pt")), key=os.path.getmtime)
+
+    pretrained_ckpts = sorted(
+        glob.glob(os.path.join(args.pretrained, "*.pt")), key=os.path.getmtime
+    )
 
     if args.name is None:
         args.name = "-".join(
             [
                 datetime.now().strftime("%Y_%m_%d-%H_%M_%S"),
-                f"linear_probe"
-                f"model_{args.amodel}",
+                f"linear_probe" f"model_{args.amodel}",
                 f"lr_{args.lr}",
                 f"b_{args.batch_size}",
                 f"j_{args.workers}",
@@ -172,7 +186,7 @@ def main():
         postfix = 0
         while os.path.exists(args.log_path):
             postfix += 1
-            log_base_path_new = log_base_path+'-'+str(postfix)
+            log_base_path_new = log_base_path + "-" + str(postfix)
             os.makedirs(log_base_path_new, exist_ok=True)
             log_filename = f"out-{args.rank}" if args.log_local else "out.log"
             args.log_path = os.path.join(log_base_path_new, log_filename)
@@ -227,7 +241,7 @@ def main():
     else:
         logging.info(f"Running with a single process. Device {args.device}.")
 
-    logging.info(f'openai cache dir: {os.path.expanduser(args.openai_model_cache_dir)}')
+    logging.info(f"openai cache dir: {os.path.expanduser(args.openai_model_cache_dir)}")
 
     # determine if this worker should save logs and checkpoints. only do so if it is rank == 0
     args.save_logs = args.logs and args.logs.lower() != "none" and is_master(args)
@@ -252,13 +266,13 @@ def main():
     for idx, f in enumerate(pretrained_ckpts):
         logging.info(f"pretrained on {f}")
         args.pretrained = f
-        ckpt = torch.load(f, map_location='cpu')
+        ckpt = torch.load(f, map_location="cpu")
         pretrain_epoch = 0
-        if 'epoch' in ckpt:
-            pretrain_epoch = ckpt['epoch']
-        # train 
+        if "epoch" in ckpt:
+            pretrain_epoch = ckpt["epoch"]
+        # train
         best_metrics = lp_main(args, device, writer, pretrain_epoch, idx)
-        
+
         if args.wandb and is_master(args):
             assert wandb is not None, "Please install wandb."
             for name, val in best_metrics.items():
@@ -266,6 +280,7 @@ def main():
 
     if args.wandb and is_master(args):
         wandb.finish()
+
 
 def update_metric(best_metric, new_metric):
     for key in new_metric:
@@ -275,15 +290,14 @@ def update_metric(best_metric, new_metric):
             best_metric[key] = max(best_metric[key], new_metric[key])
     return best_metric
 
-def lp_main(args, device, writer, pretrain_epoch, idx):
 
+def lp_main(args, device, writer, pretrain_epoch, idx):
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
     np.random.seed(args.seed)
     args.class_index_dict = load_class_label(args.class_label_path)
-
 
     # Create CLAP model
     clap_model, clap_model_cfg = create_model(
@@ -297,11 +311,11 @@ def lp_main(args, device, writer, pretrain_epoch, idx):
         openai_model_cache_dir=os.path.expanduser(args.openai_model_cache_dir),
         skip_params=False,
         enable_fusion=args.enable_fusion,
-        fusion_type=args.fusion_type
+        fusion_type=args.fusion_type,
     )
-    
+
     args.lp_out_ch = len(list(args.class_index_dict.keys()))
-    # Linear Probe 
+    # Linear Probe
     if idx == 0:
         logging.info(f"linear probe using mlp: {args.lp_mlp}")
         logging.info(f"linear probe using freeze: {args.lp_freeze}")
@@ -312,13 +326,15 @@ def lp_main(args, device, writer, pretrain_epoch, idx):
         logging.info(f"linear probe lp_metrics: {args.lp_metrics}")
 
     model = LinearProbe(
-        clap_model, 
-        mlp=args.lp_mlp, freeze=args.lp_freeze, 
-        in_ch=512, out_ch=args.lp_out_ch,
-        act=args.lp_act
-    ) # in_ch is fixed (i.e., 512)
+        clap_model,
+        mlp=args.lp_mlp,
+        freeze=args.lp_freeze,
+        in_ch=512,
+        out_ch=args.lp_out_ch,
+        act=args.lp_act,
+    )  # in_ch is fixed (i.e., 512)
     model = model.to(device)
-    
+
     if args.horovod:
         with torch.no_grad():
             for param in model.parameters():
@@ -337,7 +353,6 @@ def lp_main(args, device, writer, pretrain_epoch, idx):
                 val = getattr(args, name)
                 logging.info(f"  {name}: {val}")
                 f.write(f"{name}: {val}\n")
-    
 
     if args.distributed and not args.horovod:
         if args.use_bn_sync:
@@ -355,7 +370,9 @@ def lp_main(args, device, writer, pretrain_epoch, idx):
     if args.trace:
         assert "train" not in data, "Cannot train with traced model"
 
-    optimizer, scheduler, text_freeze_parameters = config_lp_optimizer(model, data, args)
+    optimizer, scheduler, text_freeze_parameters = config_lp_optimizer(
+        model, data, args
+    )
 
     scaler = GradScaler() if args.precision == "amp" else None
 
@@ -412,12 +429,21 @@ def lp_main(args, device, writer, pretrain_epoch, idx):
     best_metrics = {}
 
     if "train" not in data:
-        metric = evaluate(model, data, start_epoch, args, writer, extra_suffix="_pe@" + str(pretrain_epoch))
+        metric = evaluate(
+            model,
+            data,
+            start_epoch,
+            args,
+            writer,
+            extra_suffix="_pe@" + str(pretrain_epoch),
+        )
         if is_master(args):
             best_metrics = update_metric(best_metrics, metric)
         return
     elif start_epoch == 0 and "val" in data and not args.no_eval:
-        metric = evaluate(model, data, 0, args, writer, extra_suffix="_pe@" + str(pretrain_epoch))
+        metric = evaluate(
+            model, data, 0, args, writer, extra_suffix="_pe@" + str(pretrain_epoch)
+        )
         if is_master(args):
             best_metrics = update_metric(best_metrics, metric)
     if args.save_top_performance:
@@ -434,11 +460,31 @@ def lp_main(args, device, writer, pretrain_epoch, idx):
         if is_master(args):
             logging.info(f"Start epoch {epoch}")
 
-        train_one_epoch(model, data, epoch, optimizer, scaler, scheduler, args, writer, extra_suffix="_pe@" + str(pretrain_epoch))
+        train_one_epoch(
+            model,
+            data,
+            epoch,
+            optimizer,
+            scaler,
+            scheduler,
+            args,
+            writer,
+            extra_suffix="_pe@" + str(pretrain_epoch),
+        )
         completed_epoch = epoch + 1
 
-        if any(v in data for v in ("val", "imagenet-val", "imagenet-v2")) and not args.no_eval:
-            metric = evaluate(model, data, completed_epoch, args, writer, extra_suffix="_pe@" + str(pretrain_epoch))
+        if (
+            any(v in data for v in ("val", "imagenet-val", "imagenet-v2"))
+            and not args.no_eval
+        ):
+            metric = evaluate(
+                model,
+                data,
+                completed_epoch,
+                args,
+                writer,
+                extra_suffix="_pe@" + str(pretrain_epoch),
+            )
             if is_master(args):
                 best_metrics = update_metric(best_metrics, metric)
             if args.save_top_performance:
@@ -452,8 +498,8 @@ def lp_main(args, device, writer, pretrain_epoch, idx):
         # Saving checkpoints.
         if args.save_logs:
             opt_dict = {
-                    k + "_" + "optimizer": v.state_dict() for k, v in optimizer.items()
-                }
+                k + "_" + "optimizer": v.state_dict() for k, v in optimizer.items()
+            }
             checkpoint_dict = {
                 "epoch": completed_epoch,
                 "pretrain_epoch": pretrain_epoch,
@@ -469,12 +515,18 @@ def lp_main(args, device, writer, pretrain_epoch, idx):
             ):
                 torch.save(
                     checkpoint_dict,
-                    os.path.join(args.checkpoint_path, f"pretrain_epoch_{pretrain_epoch}_lp_epoch_{completed_epoch}.pt"),
+                    os.path.join(
+                        args.checkpoint_path,
+                        f"pretrain_epoch_{pretrain_epoch}_lp_epoch_{completed_epoch}.pt",
+                    ),
                 )
             if args.save_most_recent:
                 torch.save(
                     checkpoint_dict,
-                    os.path.join(args.checkpoint_path, f"pretrain_epoch_{pretrain_epoch}_lp_epoch_latest.pt"),
+                    os.path.join(
+                        args.checkpoint_path,
+                        f"pretrain_epoch_{pretrain_epoch}_lp_epoch_latest.pt",
+                    ),
                 )
             if args.save_top_performance and not args.no_eval:
                 update_top_k_performance(
@@ -483,7 +535,7 @@ def lp_main(args, device, writer, pretrain_epoch, idx):
                     args,
                     checkpoint_dict,
                     bignumbetter=True,
-                    pretrain_epoch=pretrain_epoch
+                    pretrain_epoch=pretrain_epoch,
                 )
     del clap_model
     return best_metrics
@@ -511,5 +563,3 @@ def copy_codebase(args):
 
 if __name__ == "__main__":
     main()
-
-

@@ -1,7 +1,5 @@
-import numpy as np
-import torch.nn.functional as F
 from torch import nn
-from .model import MLPLayers
+from laion_clap.clap_modulemodel import MLPLayers
 
 
 class LinearProbe(nn.Module):
@@ -29,17 +27,17 @@ class LinearProbe(nn.Module):
             for param in self.clap_model.parameters():
                 param.requires_grad = False
 
-        if act == 'None':
+        if act == "None":
             self.act = None
-        elif act == 'relu':
+        elif act == "relu":
             self.act = nn.ReLU()
-        elif act == 'elu':
+        elif act == "elu":
             self.act = nn.ELU()
-        elif act == 'prelu':
+        elif act == "prelu":
             self.act = nn.PReLU(num_parameters=in_ch)
-        elif act == 'softmax':
+        elif act == "softmax":
             self.act = nn.Softmax(dim=-1)
-        elif act == 'sigmoid':
+        elif act == "sigmoid":
             self.act = nn.Sigmoid()
 
     def forward(self, x, mix_lambda=None, device=None):
@@ -56,7 +54,10 @@ class LinearProbe(nn.Module):
             self.clap_model.eval()
 
         x = self.clap_model.audio_projection(
-            self.clap_model.audio_branch(x, mixup_lambda=mix_lambda, device=device)["embedding"])
+            self.clap_model.audio_branch(x, mixup_lambda=mix_lambda, device=device)[
+                "embedding"
+            ]
+        )
         out = self.lp_layer(x)
         if self.act is not None:
             out = self.act(out)

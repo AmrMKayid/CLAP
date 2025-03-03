@@ -23,14 +23,17 @@ try:
 except ImportError:
     hvd = None
 
-from clap_module import create_model_and_transforms, trace_model, create_model
+from laion_clap.clap_module import (
+    trace_model,
+    create_model,
+)
 from training.data import get_data
 from training.distributed import is_master, init_distributed_device, world_info_from_env
 from training.logger import setup_logging
 from training.params import parse_args
 from training.scheduler import cosine_lr
 from training.train import train_one_epoch, evaluate
-from clap_module.utils import dataset_split, get_optimizer
+from laion_clap.clap_module.utils import dataset_split, get_optimizer
 
 
 def maintain_ckpts(args, startidx, all_idx_len):
@@ -242,7 +245,7 @@ def main():
         pretrained_audio=args.pretrained_audio,
         pretrained_text=args.pretrained_text,
         enable_fusion=args.enable_fusion,
-        fusion_type=args.fusion_type
+        fusion_type=args.fusion_type,
     )
 
     if args.horovod:
@@ -292,11 +295,7 @@ def main():
     named_parameters = list(model.named_parameters())
 
     # freeze text encoder
-    text_freeze_parameters = [
-        p
-        for n, p in named_parameters
-        if 'text_branch' in n
-    ]
+    text_freeze_parameters = [p for n, p in named_parameters if "text_branch" in n]
 
     if args.freeze_text:
         print("Freeze Text!!!!")
@@ -359,7 +358,7 @@ def main():
                 eps=args.eps_pretrained,
                 momentum=args.momentum_pretrained,
                 optimizer_name=args.optimizer,
-                )
+            )
             pretrained_params_scheduler = cosine_lr(
                 pretrained_params_optimizer,
                 args.lr_pretrained,
@@ -376,7 +375,7 @@ def main():
                 eps=args.eps_new,
                 momentum=args.momentum_new,
                 optimizer_name=args.optimizer,
-                )
+            )
 
             new_params_scheduler = cosine_lr(
                 new_params_optimizer, args.lr_new, args.warmup, total_steps
@@ -558,7 +557,7 @@ def main():
             if args.save_most_recent:
                 torch.save(
                     checkpoint_dict,
-                    os.path.join(args.checkpoint_path, f"epoch_latest.pt"),
+                    os.path.join(args.checkpoint_path, "epoch_latest.pt"),
                 )
             if args.save_top_performance and not args.no_eval:
                 update_top_k_performance(
